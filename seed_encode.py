@@ -4,7 +4,7 @@ def int_to_sixteen(symbol_ID):
 
     half_bin_data = bin_data[16:]
 
-    hex_data = '{:04x}'.format(int(half_bin_data , 2))
+    hex_data = '{:04x}'.format(int(half_bin_data , 2))      # 2 to 16 ,and complement 0 
 
     return hex_data                                        #return symbol_ID in Hexadecimal,str
 
@@ -20,7 +20,7 @@ def int_to_sixteen(symbol_ID):
 
     sbn=bin_data[:3]
 
-    hex_esi = '{:04x}'.format(int(half_bin_esi , 2))
+    hex_esi = '{:04x}'.format(int(half_bin_esi , 2))         # 2 to 16 ,and complement 0 
 
     hex_sbn = '{:02x}'.format(int(sbn , 2))
 
@@ -42,6 +42,6 @@ def sixteen_to_dna(symbol_ID_16):
 
     for i in str(symbol_ID_16):
 
-        dna_symbol_ID +=codon[i]
+        dna_symbol_ID +=codon[i]                        
 
     return dna_symbol_ID                                 # return symbol ID coding in DNA
