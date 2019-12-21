@@ -1,55 +1,25 @@
-def int_to_sixteen(symbol_id):
+def int_to_sixteen(symbol_ID):    
+   
+    bin_data = '{:032b}'.format(symbol_ID)                #convert to a long sring of binary values, only have low 8 bit of the symbol_ID
 
-    bin_data = '{0:08b}'.format(symbol_id)
-    # convert to a long string of binary values, only have low 8 bit of the symbol_ID
+    half_bin_data = bin_data[16:]
 
-    symbol_id_16 = '0' * (4-len(hex(int(bin_data, 2)))) + str(hex(int(bin_data, 2)))[2:]
+    hex_data = '{:04x}'.format(int(half_bin_data , 2))
 
-    return symbol_id_16  # return symbol_ID in 2 bit Hexadecimal
-
-
-def sixteen_to_dna(symbol_id_16):
-
-    codon = {'0': 'GCT', '1': 'TGT', '2': 'GAT', '3': 'GAA',
-             '4': 'CAT', '5': 'ATG', '6': 'AAT', '7': 'CAA',
-             '8': 'TAT', '9': 'TGG', 'a': 'GTT', 'b': 'AGA',
-             'c': 'CCT', 'd': 'GGA', 'e': 'AAG', 'f': 'ACT'}
-    # This diction corresponds to genetic code preference in Arabidopsis thaliana
+    return hex_data                                        #return symbol_ID in Hexadecimal,str
 
 
-    dna_symbol_id = ''
-
-    for i in symbol_id_16:
+def sixteen_to_dna(symbol_ID_16):
     
-        dna_symbol_id += codon[i]
+    codon={'0':'GCT','1':'TGT','2':'GAT','3':'GAA',
+           '4':'CAT','5':'ATG','6':'AAT','7':'CAA',
+           '8':'TAT','9':'TGG','a':'GTT','b':'AGA',
+           'c':'CCT','d':'GGA','e':'AAG','f':'ACT'}   # This diction corresponds to genetic code preference in Arabidopsis thaliana
 
-    return dna_symbol_id  # return symbol ID coding in DNA
+    dna_symbol_ID=''
 
+    for i in str(symbol_ID_16):
 
+        dna_symbol_ID +=codon[i]
 
-
-
-
-
-
-def int_to_dna(symbol_id):  # This function can directly translate symbol ID into DNA
-
-    codon = {'0': 'GCT', '1': 'TGT', '2': 'GAT', '3': 'GAA',
-             '4': 'CAT', '5': 'ATG', '6': 'AAT', '7': 'CAA',
-             '8': 'TAT', '9': 'TGG', 'a': 'GTT', 'b': 'AGA',
-             'c': 'CCT', 'd': 'GGA', 'e': 'AAG', 'f': 'ACT'}
-    # This diction corresponds to genetic code preference in Arabidopsis thaliana
-
-    symbol_id_16 = '0' * (4-len(hex(symbol_id)))+str(hex(symbol_id))[2:]
-
-    #This step can be optimization. 4 corresponds to len of the DNA  code
-
-    dna_symbol_id = ''
-
-    for i in symbol_id_16:  # Translate symbol ID into DNA by dictionary
-
-        dna_symbol_id += codon[i]
-
-    return dna_symbol_id               # return symbol ID coding in 6 np DNA
-
-
+    return dna_symbol_ID                                 # return symbol ID coding in DNA
