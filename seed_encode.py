@@ -9,6 +9,28 @@ def int_to_sixteen(symbol_ID):
     return hex_data                                        #return symbol_ID in Hexadecimal,str
 
 
+
+
+
+def int_to_sixteen(symbol_ID):    
+   
+    bin_data = '{:032b}'.format(symbol_ID)                #convert to a long sring of binary values, only have low 8 bit of the symbol_ID
+
+    half_bin_esi = bin_data[16:]
+
+    sbn=bin_data[:3]
+
+    hex_esi = '{:04x}'.format(int(half_bin_esi , 2))
+
+    hex_sbn = '{:02x}'.format(int(sbn , 2))
+
+    return hex_sbn+hex_esi                                    #return sbn,esi in Hexadecimal,str
+
+
+
+
+
+
 def sixteen_to_dna(symbol_ID_16):
     
     codon={'0':'GCT','1':'TGT','2':'GAT','3':'GAA',
