@@ -1,4 +1,10 @@
 def int_to_sixteen(symbol_ID):    
+    '''
+
+    :param symbol_ID: int
+    :return:hex_esi,str     don't include sbn
+    '''
+
    
     bin_data = '{:032b}'.format(symbol_ID)                #convert to a long sring of binary values, only have low 8 bit of the symbol_ID
 
@@ -13,6 +19,11 @@ def int_to_sixteen(symbol_ID):
 
 
 def int_to_sixteen(symbol_ID):    
+    '''
+
+    :param symbol_ID: int
+    :return:hex_sbn+hex_esi,str
+    '''
    
     bin_data = '{:032b}'.format(symbol_ID)                #convert to a long sring of binary values, only have low 8 bit of the symbol_ID
 
@@ -32,6 +43,11 @@ def int_to_sixteen(symbol_ID):
 
 
 def sixteen_to_dna(symbol_ID_16):
+    '''
+
+    :param symbol_ID_16: str
+    :return: dna-symbol_ID:str
+    '''
     
     codon={'0':'GCT','1':'TGT','2':'GAT','3':'GAA',
            '4':'CAT','5':'ATG','6':'AAT','7':'CAA',
