@@ -3,16 +3,19 @@ libraptorQ encoder/decoder
 """
 
 import hashlib
-import json
 import logging
-import os
 import sys
 import time
 import types
 
 from DNARaptorQ import RQEncoder, RQDecoder, RQError
 
-sys.stdout, sys.stderr = (os.fdopen(s.fileno(), 'wb', 0) for s in [sys.stdout, sys.stderr])
+logging.basicConfig(
+    format='%(asctime)s :: %(levelname)s :: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    level=logging.DEBUG if opts.debug else logging.WARNING)
+log = logging.getLogger()
+
 p = lambda fmt, *a, **k: \
     print(*([fmt.format(*a, **k)]
             if isinstance(fmt, types.StringTypes) and (a or k)
@@ -57,21 +60,21 @@ def encode(opts, data):
     timer = timer_iter()
 
     # Encoder
-    with RQEncoder(data, opts.subsymbol_size, opts.symbol_size, opts.max_memory) as enc:
+    with RQEncoder(data, opts['subsymbol_size'], opts['symbol_size'], opts['max_memory']) as enc:
         log.debug('Initialized RQEncoder (%.3fs)...', next(timer))
         oti_scheme, oti_common = enc.oti_scheme, enc.oti_common  # OTI value
         # Precomputed
-        if not opts.no_precompute:
-            enc.precompute(opts.threads, background=False)
+        if not opts['no_precompute']:
+            enc.precompute(opts['threads'], background=False)
             log.debug('Precomputed blocks (%.3fs)...', next(timer))
 
         symbols, enc_k, n_drop = list(), 0, 0
         for block in enc:
             enc_k += block.symbols  # not including repair ones
-            block_syms = list(block.encode_iter(repair_rate=opts.repair_symbols_rate))
-            if opts.drop_rate > 0:
+            block_syms = list(block.encode_iter(repair_rate=opts['repair_symbols_rate']))
+            if opts['drop_rate'] > 0:
                 import random
-                n_drop_block = int(round(len(block_syms) * opts.drop_rate, 0))
+                n_drop_block = int(round(len(block_syms) * opts['drop_rate'], 0))
                 for n in range(n_drop_block):
                     block_syms[int(random.random() * len(block_syms))] = None
                 n_drop += n_drop_block
@@ -85,8 +88,8 @@ def encode(opts, data):
             'Encoded %s B into %s symbols (needed: >%s, repair rate:'
             ' %d%%), %s dropped (%d%%), %s left in output (%s B without ids)',
             num_fmt(data_len), num_fmt(len(symbols) + n_drop),
-            num_fmt(enc_k), opts.repair_symbols_rate * 100,
-            num_fmt(n_drop), opts.drop_rate * 100, num_fmt(len(symbols)),
+            num_fmt(enc_k), opts['repair_symbols_rate'] * 100,
+            num_fmt(n_drop), opts['drop_rate'] * 100, num_fmt(len(symbols)),
             num_fmt(sum(len(s[1]) for s in symbols)))
 
     return dict(data_bytes=data_len,
@@ -95,48 +98,47 @@ def encode(opts, data):
                 checksums=dict(md5=data_md5))
 
 
-def decode(opts, data):
+def decode(config, symbols):
     """
     RaptorQ decoder
     Args:
-        opts: args
-        data: dict
-
+        config: dict
+        symbols:
     Returns:
         bytes
     """
-    data_dec = _decode(opts, data)
-    if data['data_bytes'] != len(data_dec):
+    data_dec = _decode(config, symbols)
+    if config['data_bytes'] != len(data_dec):
         raise EncDecFailure('Data length mismatch - {} B encoded vs {} B decoded'
-                            .format(num_fmt(data['data_bytes']), num_fmt(len(data_dec))))
+                            .format(num_fmt(config['data_bytes']), num_fmt(len(data_dec))))
 
-    data_md5 = data.get('checksums')
+    data_md5 = config.get('checksums')
     for k, v in data_md5.viewitems():
         if getattr(hashlib, k)(data_dec).hexdigest() != v:
             raise EncDecFailure('Data checksum ({}) mismatch'.format(k))
     return data_dec
 
 
-def _decode(opts, data):
+def _decode(config, symbols):
     """
 
     Args:
-        opts: args
-        data: dict
+        config: dict
+        symbols:
 
     Returns:
             bytes
     """
-    n_syms, n_syms_total, n_sym_bytes = 0, len(data['symbols']), 0
-    if not data['symbols'] and data['oti_common'] == data['oti_scheme'] == 0:
+    n_syms, n_syms_total, n_sym_bytes = 0, len(symbols), 0
+    if not symbols and config['oti_common'] == config['oti_scheme'] == 0:
         return ''  # zero-input/zero-output case
     timer = timer_iter()
 
     # Decoder
-    with RQDecoder(data['oti_common'], data['oti_scheme']) as dec:
+    with RQDecoder(config['oti_common'], config['oti_scheme']) as dec:
         log.debug('Initialized RQDecoder (%.3fs)...', next(timer))
         err = 'no symbols available'
-        for sym_id, sym in data['symbols']:
+        for sym_id, sym in symbols:
             sym_id, sym = int(sym_id), bytes(sym)
             try:
                 dec.add_symbol(sym, sym_id)
@@ -144,7 +146,7 @@ def _decode(opts, data):
                 continue
             n_syms, n_sym_bytes = n_syms + 1, n_sym_bytes + len(sym)
             try:
-                data = dec.decode()[:data['data_bytes']]  # strips \0 padding to rq block size
+                data = dec.decode()[:config['data_bytes']]  # strips \0 padding to rq block size
             except RQError as err:
                 pass
             else:
