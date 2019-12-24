@@ -126,7 +126,7 @@ class RQObject(object):
 		void RaptorQ_free_block (struct RaptorQ_ptr *ptr, const uint8_t sbn);
 	'''
 
-	_ctx = None
+    _ctx = None
 
     data_size_div, _rq_type, _rq_blk = 4, 32, 'uint32_t'
 
