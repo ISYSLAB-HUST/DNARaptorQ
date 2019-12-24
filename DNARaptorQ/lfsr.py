@@ -29,4 +29,12 @@ def pseudo_random(seed, len_payload):
     s = ''
     for i in range(pr_block):
         s += '{:016b}'.format(next(lf))
-    return int(s, 2)
+    pseudo_sequence = []
+    for a in range(0, len(s), 8):
+        pseudo_sequence.append(int(s[a:a+8], 2))
+    return pseudo_sequence
+
+
+if __name__ == '__main__':
+    ps = pseudo_random(111, 32)
+    print(ps)
