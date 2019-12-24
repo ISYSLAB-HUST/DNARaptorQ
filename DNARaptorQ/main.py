@@ -2,10 +2,65 @@
 main module
 """
 import argparse
-from DNARaptorQ.RaptorQ import *
+import json
+
+from .RaptorQ import *
+from .lfsr import *
+from .rs import InnerRScode
+from .utils import *
 
 
-def main(args=None, error_func=None):
+def EncoderToDNA(data, len_payload, nsym):
+    """
+
+    Args:
+        data:
+        len_payload:
+        nsym:
+
+    Returns:
+
+    """
+    dna_str = []
+    for item in data["symbols"]:
+        symbol_id = item[0]
+        symbol = item[1]
+        pseudo_sequence = pseudo_random(symbol_id, len_payload)
+        _symbol = Randomization(symbol, pseudo_sequence)
+        _rs = InnerRScode(nsym)
+        rs_enc = list(_rs.encode(pseudo_sequence.insert(0, symbol_id)))
+        item_dna_str = sixteen_to_dna(int_to_sixteen(symbol_id)) + BinToDNA(rs_enc[1:])
+        dna_str.append(item_dna_str)
+    return dna_str
+
+
+def DNAToDecoder(dna_str, dna_len, nsym, len_payload):
+    """
+
+    Args:
+        dna_str: str
+        dna_len: int
+        nsym: int
+        len_payload: int
+    """
+    symbols = []
+    for item in dna_str:
+        if len(item) == dna_len:  # DNA length check
+            dna_symbol_id = item[0:12]
+            dna_symbol_rs = item[12:]
+            symbol_id = dna_to_symbol_id_half(dna_symbol_id)
+            symbol_rs = DNAToBin(dna_symbol_rs + dna_symbol_rs)
+            symbol, rs = symbol_rs[:-nsym], symbol_rs[-nsym:]
+            _rs = InnerRScode(nsym)
+            symbol_correct = _rs.decode(list(symbol_id) + symbol_rs)[:-nsym]
+            if np.count_nonzero(symbol != symbol_correct) == 0:
+                pseudo_sequence = pseudo_random(symbol_id, len_payload)
+                _symbol = UnRandomization(symbol, pseudo_sequence)
+                symbols.append([symbol_id, _symbol])
+    return symbols
+
+
+def main():
     parser = argparse.ArgumentParser(
         description="Encode/decode data using RaptorQ rateless "
                     "erasure encoding (\"fountain code\") algorithm, using libRaptorQ through CFFI.")
@@ -37,6 +92,8 @@ def main(args=None, error_func=None):
                           ' Using wrong value here (for data size) can result in undecodable output.'
                           ' See RFC6330 or libRaptorQ code/docs for more information.'
                           ' Must be specified manually.')
+    cmd.add_argument('-n', '--nysm',
+                     required=True, type=int, default=2, help="RS code")
     cmd.add_argument('-m', '--max-memory',
                      required=True, type=int, metavar='int',
                      help='Value for working memory of the decoder,'
@@ -66,13 +123,6 @@ def main(args=None, error_func=None):
 
     opts = parser.parse_args(sys.argv[1:] if args is None else args)
 
-    global log
-    logging.basicConfig(
-        format='%(asctime)s :: %(levelname)s :: %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S',
-        level=logging.DEBUG if opts.debug else logging.WARNING)
-    log = logging.getLogger()
-
     src = sys.stdin if not opts.path_src else open(opts.path_src, 'rb')
     try:
         data = src.read()
@@ -84,12 +134,24 @@ def main(args=None, error_func=None):
             if not opts.subsymbol_size:
                 opts.subsymbol_size = opts.symbol_size
             try:
-                data = encode(opts, data)
+                _opts = {"subsymbol_size": opts.subsymbol_size, "symbol_size": opts.symbol_size,
+                         "max_memory": opts.max_memory, "no_precompute": opts.no_precompute, "threads": opts.threads,
+                         "repair_symbols_rate": opts.repair_symbols_rate, "drop_rate": opts.drop_rate}
+                data = encode(_opts, data)
+                dna_str = EncoderToDNA(data, opts.symbol_size, opts.nysm)
+                data["symbols"] = dna_str
+                data["rs"] = opts.nysm
+                data = json.dumps(data, sort_keys=True, indent=2, separators=(',', ': '))
             except RQError as err:
                 raise EncDecFailure(str(err))
-            data = json.dumps(data, sort_keys=True, indent=2, separators=(',', ': '))
+
         elif opts.cmd == 'decode':
-            data = decode(opts, json.loads(data))
+            data = json.loads(data)
+            dna_length = data["symbol_size"] + data[
+                "rs"] + 12  # here, 12 is hard-coded when file is small, otherwise, 24 will be OK
+            _symbol = DNAToDecoder(data["symbols"], dna_length, data["rs"], data["symbol_size"])
+            data["symbols"] = _symbol
+            data = decode(opts, data)
         else:
             raise NotImplementedError(opts.cmd)
     except EncDecFailure as err:
