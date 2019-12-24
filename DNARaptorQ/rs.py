@@ -2,8 +2,9 @@
 Reed Solomon encoder/decoder
 '''
 
-from reedsolo import RSCodec
 import warnings
+
+from reedsolo import RSCodec
 
 
 class InnerRScode(object):
@@ -47,7 +48,7 @@ class InnerRScode(object):
 
 if __name__ == '__main__':
     rs = InnerRScode(2)
-    bit_enc = rs.encode([1,2,3,3,])
-    print(bit_enc)
-    bit_dec = rs.decode(bit_enc)[-2:]
+    bit_enc = rs.encode([1, 2, 3])
+    print(list(bit_enc))
+    bit_dec = rs.decode(bit_enc)
     print([ord(item) for item in bit_dec.decode()])
